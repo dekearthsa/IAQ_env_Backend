@@ -47,7 +47,7 @@ const resGetAPISchema = {
                 PM10: { type: "number" },
                 CO: { type: "number" },
             },
-            required: ["id", "strDatetime", "VOC", "CO2", "CH20", "eVOC", "Humid", "Temp", "PM2.5", "PM10", "CO"]
+
         }
     },
     404: {
