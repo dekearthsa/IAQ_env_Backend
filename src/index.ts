@@ -36,18 +36,18 @@ const resGetAPISchema = {
             type: "object",
             properties: {
                 id: { type: "integer" },
-                datetime: { type: "string" },
-                voc: { type: "number" },
-                co2: { type: "number" },
-                ch20: { type: "number" },
-                evoc: { type: "number" },
-                humid: { type: "number" },
-                temp: { type: "number" },
-                pm25: { type: "number" },
-                pm10: { type: "number" },
-                co: { type: "number" },
+                strDatetime: { type: "string" },
+                VOC: { type: "number" },
+                CO2: { type: "number" },
+                CH20: { type: "number" },
+                eVOC: { type: "number" },
+                Humid: { type: "number" },
+                Temp: { type: "number" },
+                "PM2.5": { type: "number" },
+                PM10: { type: "number" },
+                CO: { type: "number" },
             },
-            required: ["id", "datetime", "voc", "co2", "ch20", "evoc", "humid", "temp", "pm25", "pm10", "co"]
+            required: ["id", "strDatetime", "VOC", "CO2", "CH20", "eVOC", "humid", "Humid", "Temp", "PM2.5", "PM10", "CO"]
         }
     },
     404: {
@@ -86,9 +86,9 @@ fastify.get<{ Params: UserParams }>("/api/selected/:year/:month/:day",
         const [data] = await pool.query(
             `SELECT * FROM airQuality 
             WHERE 
-            YEAR(STR_TO_DATE(datetime_str, '%d/%m/%y %H:%i')) = ? AND
-            MONTH(STR_TO_DATE(datetime_str, '%d/%m/%y %H:%i')) = ? AND
-            DAY(STR_TO_DATE(datetime_str, '%d/%m/%y %H:%i')) = ?`,
+            YEAR(STR_TO_DATE(strDatetime, '%d/%m/%y %H:%i')) = ? AND
+            MONTH(STR_TO_DATE(strDatetime, '%d/%m/%y %H:%i')) = ? AND
+            DAY(STR_TO_DATE(strDatetime, '%d/%m/%y %H:%i')) = ?`,
             [year, month, day]
         )
 
@@ -106,9 +106,9 @@ fastify.get<{ Params: UserParams }>('/api/download/selected/:year/:month/:day',
             const [data] = await pool.query(
                 `SELECT * FROM airQuality
                 WHERE
-                YEAR(STR_TO_DATE(datetime_str, '%d/%m/%y %H:%i')) = ?
-                AND MONTH(STR_TO_DATE(datetime_str, '%d/%m/%y %H:%i')) = ?
-                AND DAY(STR_TO_DATE(datetime_str, '%d/%m/%y %H:%i')) = ?`,
+                YEAR(STR_TO_DATE(strDatetime, '%d/%m/%y %H:%i')) = ?
+                AND MONTH(STR_TO_DATE(strDatetime, '%d/%m/%y %H:%i')) = ?
+                AND DAY(STR_TO_DATE(strDatetime, '%d/%m/%y %H:%i')) = ?`,
                 [year, month, day]
             )
 
