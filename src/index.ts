@@ -32,7 +32,7 @@ const paramsSchema = {
 const resGetAPISchema = {
     200: {
         type: "array",
-        item: {
+        items: {
             type: "object",
             properties: {
                 id: { type: "integer" },
@@ -47,10 +47,7 @@ const resGetAPISchema = {
                 pm10: { type: "number" },
                 co: { type: "number" },
             },
-            require: [
-                "id", "datetime", "voc", "co2", "ch20", "evoc", "humid",
-                "temp", "pm25", "pm10", "co"
-            ]
+            required: ["id", "datetime", "voc", "co2", "ch20", "evoc", "humid", "temp", "pm25", "pm10", "co"]
         }
     },
     404: {
@@ -87,7 +84,11 @@ fastify.get<{ Params: UserParams }>("/api/selected/:year/:month/:day",
     async (request, reply) => {
         const { year, month, day } = request.params;
         const [data] = await pool.query(
-            `SELECT * FROM airQuality WHERE YEAR(timestamp) = ? AND MONTH(timestamp) = ? AND DAY(timestamp) = ?`,
+            `SELECT * FROM airQuality 
+            WHERE 
+            YEAR(STR_TO_DATE(datetime_str, '%d/%m/%y %H:%i')) = ? AND
+            MONTH(STR_TO_DATE(datetime_str, '%d/%m/%y %H:%i')) = ? AND
+            DAY(STR_TO_DATE(datetime_str, '%d/%m/%y %H:%i')) = ?`,
             [year, month, day]
         )
 
@@ -103,60 +104,13 @@ fastify.get<{ Params: UserParams }>('/api/download/selected/:year/:month/:day',
         try {
             const { year, month, day } = request.params;
             const [data] = await pool.query(
-                `SELECT *,
-            CASE
-                WHEN device_name = 'tongdy_1' THEN (co2 * 0.922144) + 220.8915
-                WHEN device_name = 'tongdy_2' THEN (co2 * 1.11773) - 97.9053
-                WHEN device_name = 'tongdy_3' THEN (co2 * 1.070889) - 2.3568
-                WHEN device_name = 'tongdy_4' THEN (co2 * 1.123171) - 57.9253
-                ELSE co2
-            END AS adjust_co2
-            FROM tongdy 
-            WHERE YEAR(timestamp) = ? 
-            AND MONTH(timestamp) = ? 
-            AND DAY(timestamp) = ?`, [year, month, day]
-            );
-
-
-            if (Array.isArray(data) && data.length > 0) {
-                const json2csvParser = new Parser();
-                const csv = json2csvParser.parse(data);
-
-                reply.header('Content-Type', 'text/csv');
-                reply.header('Content-Disposition', `attachment; filename="data_${year}-${month}-${day}.csv"`);
-
-                return reply.send(csv);
-            } else {
-                return reply.code(404).send({ error: "No data found for the selected date" });
-            }
-        } catch (err) {
-            reply.send("error /api/download/selected " + err)
-        }
-    })
-
-fastify.get<{ Params: UserParams }>('/api/download/selected/:year/:month/:day',
-    {
-        schema: {
-            params: paramsSchema
-        }
-    }, async (request, reply) => {
-        try {
-            const { year, month, day } = request.params;
-            const [data] = await pool.query(
-                `SELECT *,
-            CASE
-                WHEN device_name = 'tongdy_1' THEN (co2 * 0.922144) + 220.8915
-                WHEN device_name = 'tongdy_2' THEN (co2 * 1.11773) - 97.9053
-                WHEN device_name = 'tongdy_3' THEN (co2 * 1.070889) - 2.3568
-                WHEN device_name = 'tongdy_4' THEN (co2 * 1.123171) - 57.9253
-                ELSE co2
-            END AS adjust_co2
-            FROM tongdy 
-            WHERE YEAR(timestamp) = ? 
-            AND MONTH(timestamp) = ? 
-            AND DAY(timestamp) = ?`, [year, month, day]
-            );
-
+                `SELECT * FROM airQuality
+                WHERE
+                YEAR(STR_TO_DATE(datetime_str, '%d/%m/%y %H:%i')) = ?
+                AND MONTH(STR_TO_DATE(datetime_str, '%d/%m/%y %H:%i')) = ?
+                AND DAY(STR_TO_DATE(datetime_str, '%d/%m/%y %H:%i')) = ?`,
+                [year, month, day]
+            )
 
             if (Array.isArray(data) && data.length > 0) {
                 const json2csvParser = new Parser();

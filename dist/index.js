@@ -14,7 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const fastify_1 = __importDefault(require("fastify"));
 const promise_1 = require("mysql2/promise");
-// import { Parser } from 'json2csv'
+const json2csv_1 = require("json2csv");
 const cors_1 = __importDefault(require("@fastify/cors"));
 const fastify = (0, fastify_1.default)({
     logger: false
@@ -36,7 +36,7 @@ const paramsSchema = {
 const resGetAPISchema = {
     200: {
         type: "array",
-        item: {
+        items: {
             type: "object",
             properties: {
                 id: { type: "integer" },
@@ -51,10 +51,7 @@ const resGetAPISchema = {
                 pm10: { type: "number" },
                 co: { type: "number" },
             },
-            require: [
-                "id", "datetime", "voc", "co2", "ch20", "evoc", "humid",
-                "temp", "pm25", "pm10", "co"
-            ]
+            required: ["id", "datetime", "voc", "co2", "ch20", "evoc", "humid", "temp", "pm25", "pm10", "co"]
         }
     },
     404: {
@@ -83,8 +80,39 @@ fastify.get("/api/selected/:year/:month/:day", {
     }
 }, (request, reply) => __awaiter(void 0, void 0, void 0, function* () {
     const { year, month, day } = request.params;
-    const [data] = yield pool.query(`SELECT * FROM airQuality WHERE YEAR(timestamp) = ? AND MONTH(timestamp) = ? AND DAY(timestamp) = ?`, [year, month, day]);
+    const [data] = yield pool.query(`SELECT * FROM airQuality 
+            WHERE 
+            YEAR(STR_TO_DATE(datetime_str, '%d/%m/%y %H:%i')) = ? AND
+            MONTH(STR_TO_DATE(datetime_str, '%d/%m/%y %H:%i')) = ? AND
+            DAY(STR_TO_DATE(datetime_str, '%d/%m/%y %H:%i')) = ?`, [year, month, day]);
     reply.send(data);
+}));
+fastify.get('/api/download/selected/:year/:month/:day', {
+    schema: {
+        params: paramsSchema
+    }
+}, (request, reply) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { year, month, day } = request.params;
+        const [data] = yield pool.query(`SELECT * FROM airQuality
+                WHERE
+                YEAR(STR_TO_DATE(datetime_str, '%d/%m/%y %H:%i')) = ?
+                AND MONTH(STR_TO_DATE(datetime_str, '%d/%m/%y %H:%i')) = ?
+                AND DAY(STR_TO_DATE(datetime_str, '%d/%m/%y %H:%i')) = ?`, [year, month, day]);
+        if (Array.isArray(data) && data.length > 0) {
+            const json2csvParser = new json2csv_1.Parser();
+            const csv = json2csvParser.parse(data);
+            reply.header('Content-Type', 'text/csv');
+            reply.header('Content-Disposition', `attachment; filename="data_${year}-${month}-${day}.csv"`);
+            return reply.send(csv);
+        }
+        else {
+            return reply.code(404).send({ error: "No data found for the selected date" });
+        }
+    }
+    catch (err) {
+        reply.send("error /api/download/selected " + err);
+    }
 }));
 fastify.listen({ port: PORT }, (err, address) => {
     if (err)
